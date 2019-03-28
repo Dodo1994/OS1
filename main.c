@@ -38,7 +38,9 @@ void loop();
 int launch(char **args, int backGround, int length);
 
 void addJob(char** args, int length, int pid);
-
+/*
+ * Function to read input from command line.
+ */
 char *readLine() {
     int bufferSize = BUFSIZE;
     int position = 0;
@@ -76,7 +78,9 @@ char *readLine() {
 
     return buffer;
 }
-
+/*
+ * Function to split user input and put into array.
+ */
 char **parse(char *line) {
     int bufsize = W_BUFSIZE, position = 0;
     char **words = malloc(bufsize * sizeof(char *));
@@ -106,7 +110,9 @@ char **parse(char *line) {
     words[position] = NULL;
     return words;
 }
-
+/*
+ * Function to run user command.
+ */
 int launch(char **args, int backGround, int length) {
     pid_t pid, wpid;
     int status, i;
@@ -129,6 +135,7 @@ int launch(char **args, int backGround, int length) {
                 wpid = waitpid(pid, &status, WUNTRACED);
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         } else {
+            // Add background
             addJob(args,length,pid);
         }
     }
@@ -187,6 +194,9 @@ void printJobs() {
     }
 }
 
+/*
+ * Function to execute.
+ */
 int execute(char **args) {
     int i = 0;
     int length = 0;
@@ -245,6 +255,9 @@ void loop() {
 
 }
 
+/*
+ * Function to add job to jobs list.
+ */
 void addJob(char** args, int length, int pid){
     int i;
     Job *currentJob = (Job *) malloc(sizeof(Job));
@@ -263,6 +276,9 @@ void addJob(char** args, int length, int pid){
 
 }
 
+/*
+ * main Function.
+ */
 int main() {
     // Load config.
     for (int i = 0; i < JOBS; ++i) {
