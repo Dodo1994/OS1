@@ -1,3 +1,5 @@
+// Dovi Widawsky 313771461
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <wait.h>
@@ -254,6 +256,7 @@ int execute(char **args) {
         i++;
     }
 
+    // run builtin if called.
     for (i = 0; i < builtins(); i++) {
         if (strcmp(args[0], builtin_str[i]) == 0) {
             printf("%d\n", getpid());
