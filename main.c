@@ -17,6 +17,7 @@ typedef struct Job {
 } Job;
 
 Job *jobs[JOBS];
+char lastPath[BUFSIZE];
 
 /*
   Function Declarations.
@@ -37,7 +38,8 @@ void loop();
 
 int launch(char **args, int backGround, int length);
 
-void addJob(char** args, int length, int pid);
+void addJob(char **args, int length, int pid);
+
 /*
  * Function to read input from command line.
  */
@@ -78,6 +80,7 @@ char *readLine() {
 
     return buffer;
 }
+
 /*
  * Function to split user input and put into array.
  */
@@ -110,6 +113,7 @@ char **parse(char *line) {
     words[position] = NULL;
     return words;
 }
+
 /*
  * Function to run user command.
  */
@@ -121,7 +125,7 @@ int launch(char **args, int backGround, int length) {
     if (pid == 0) {
         // Child process
         if (execvp(args[0], args) == -1) {
-            perror("Child process error");
+            fprintf(stderr, "Error in system call\n");
         }
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
@@ -136,7 +140,7 @@ int launch(char **args, int backGround, int length) {
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         } else {
             // Add background
-            addJob(args,length,pid);
+            addJob(args, length, pid);
         }
     }
 
@@ -158,12 +162,49 @@ int builtins() {
   Builtin function implementations.
 */
 int cd(char **args) {
-    if (args[1] == NULL) {
-        fprintf(stderr, "lsh: expected argument to \"cd\"\n");
-    } else {
-        if (chdir(args[1]) != 0) {
+    char cwd[BUFSIZE];
+    char spaces[BUFSIZE];
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        perror("lsh");
+    }
+    // go to home directory.
+    if (args[1] == NULL || !strcmp(args[1], "~")) {
+        if (chdir(getenv("HOME")) != 0) {
             perror("lsh");
         }
+    }
+    // go to previous visited directory.
+    else if (!strcmp(args[1], "-")) {
+        if (chdir(lastPath) != 0) {
+            perror("lsh");
+        }
+    }
+    // open given directory.
+    else {
+        // check if directory has spaces in name.
+        memset(spaces, '\0', BUFSIZE);
+        strcpy(spaces,args[1]);
+        int i = 2;
+        if (args[1][0] == '\"') {
+            while (args[i] != NULL) {
+                strcat(spaces, " ");
+                strcat(spaces, args[i]);
+                i++;
+            }
+            int len = strlen(spaces);
+            for (i = 0; i < len; i++) {
+                spaces[i] = spaces[i+1];
+            }
+            spaces[i-2] = '\0';
+            spaces[i-1] = '\0';
+        }
+        if (chdir(spaces) != 0) {
+            perror("lsh");
+        }
+    }
+    // save last visited path.
+    if (strcmp(cwd, lastPath) != 0) {
+        strcpy(lastPath, cwd);
     }
     return 1;
 }
@@ -171,7 +212,9 @@ int cd(char **args) {
 int shell_exit(char **args) {
     return 0;
 }
-
+/*
+ * print all running jobs.
+ */
 void printJobs() {
     int i, j, k;
     for (i = 0; i < JOBS; i++) {
@@ -213,6 +256,7 @@ int execute(char **args) {
 
     for (i = 0; i < builtins(); i++) {
         if (strcmp(args[0], builtin_str[i]) == 0) {
+            printf("%d\n", getpid());
             return (*builtin_func[i])(args);
         }
     }
@@ -258,7 +302,7 @@ void loop() {
 /*
  * Function to add job to jobs list.
  */
-void addJob(char** args, int length, int pid){
+void addJob(char **args, int length, int pid) {
     int i;
     Job *currentJob = (Job *) malloc(sizeof(Job));
     currentJob->argv = malloc(BUFSIZE * sizeof(char *));
@@ -268,8 +312,8 @@ void addJob(char** args, int length, int pid){
     }
     currentJob->length = length;
     currentJob->pid = pid;
-    i=0;
-    while (jobs[i]!= NULL){
+    i = 0;
+    while (jobs[i] != NULL) {
         i++;
     }
     jobs[i] = currentJob;
@@ -283,6 +327,9 @@ int main() {
     // Load config.
     for (int i = 0; i < JOBS; ++i) {
         jobs[i] = NULL;
+    }
+    if (getcwd(lastPath, sizeof(lastPath)) == NULL) {
+        perror("lsh");
     }
     // Run REPL loop.
     loop();
