@@ -327,8 +327,9 @@ void addJob(char **args, int length, int pid) {
  * main Function.
  */
 int main() {
+    int i;
     // Load config.
-    for (int i = 0; i < JOBS; ++i) {
+    for (i = 0; i < JOBS; ++i) {
         jobs[i] = NULL;
     }
     if (getcwd(lastPath, sizeof(lastPath)) == NULL) {
